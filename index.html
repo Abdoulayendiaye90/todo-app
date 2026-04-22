@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Todo App - Abdoulaye Ndiaye</title>
+  <title>Todo App Pro - Abdoulaye Ndiaye</title>
   <style>
     * {
       box-sizing: border-box;
@@ -24,7 +24,7 @@
 
     .app {
       width: 100%;
-      max-width: 550px;
+      max-width: 650px;
       background: #111827;
       border: 1px solid #334155;
       border-radius: 16px;
@@ -35,14 +35,13 @@
     h1 {
       text-align: center;
       margin-bottom: 10px;
-      color: #ffffff;
+      color: white;
     }
 
     .subtitle {
       text-align: center;
       color: #94a3b8;
       margin-bottom: 25px;
-      font-size: 0.95rem;
     }
 
     .input-group {
@@ -51,7 +50,7 @@
       margin-bottom: 20px;
     }
 
-    input {
+    input[type="text"] {
       flex: 1;
       padding: 14px;
       border: 1px solid #334155;
@@ -61,14 +60,14 @@
       font-size: 1rem;
     }
 
-    input::placeholder {
+    input[type="text"]::placeholder {
       color: #94a3b8;
     }
 
     button {
       border: none;
       border-radius: 10px;
-      padding: 14px 18px;
+      padding: 12px 16px;
       cursor: pointer;
       font-weight: bold;
       transition: 0.2s ease;
@@ -83,15 +82,51 @@
       background: #7dd3fc;
     }
 
+    .clear-btn {
+      background: #ef4444;
+      color: white;
+    }
+
+    .clear-btn:hover {
+      background: #f87171;
+    }
+
+    .filters {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+      flex-wrap: wrap;
+    }
+
+    .filter-btn {
+      background: #1e293b;
+      color: #e2e8f0;
+      border: 1px solid #334155;
+    }
+
+    .filter-btn.active {
+      background: #38bdf8;
+      color: #0f172a;
+    }
+
+    .stats {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      flex-wrap: wrap;
+      margin-bottom: 20px;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+    }
+
     ul {
       list-style: none;
     }
 
     li {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      gap: 10px;
+      gap: 12px;
       background: #1e293b;
       border: 1px solid #334155;
       padding: 14px;
@@ -102,6 +137,11 @@
     .task-text {
       flex: 1;
       word-break: break-word;
+    }
+
+    .completed .task-text {
+      text-decoration: line-through;
+      color: #94a3b8;
     }
 
     .delete-btn {
@@ -117,18 +157,47 @@
     .empty {
       text-align: center;
       color: #94a3b8;
-      padding: 15px 0 5px;
+      padding-top: 10px;
+    }
+
+    input[type="checkbox"] {
+      width: 18px;
+      height: 18px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 600px) {
+      .input-group {
+        flex-direction: column;
+      }
+
+      .stats {
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
   <div class="app">
-    <h1>Todo App</h1>
-    <p class="subtitle">Ajoute, supprime et sauvegarde tes tâches</p>
+    <h1>Todo App Pro</h1>
+    <p class="subtitle">Organise tes tâches simplement</p>
 
     <div class="input-group">
       <input type="text" id="taskInput" placeholder="Entrer une nouvelle tâche" />
       <button class="add-btn" onclick="addTask()">Ajouter</button>
+      <button class="clear-btn" onclick="clearAllTasks()">Tout supprimer</button>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all', this)">Toutes</button>
+      <button class="filter-btn" onclick="setFilter('active', this)">À faire</button>
+      <button class="filter-btn" onclick="setFilter('completed', this)">Terminées</button>
+    </div>
+
+    <div class="stats">
+      <span id="totalTasks">Total : 0</span>
+      <span id="completedTasks">Terminées : 0</span>
+      <span id="remainingTasks">Restantes : 0</span>
     </div>
 
     <ul id="taskList"></ul>
@@ -139,52 +208,95 @@
     const taskInput = document.getElementById('taskInput');
     const taskList = document.getElementById('taskList');
     const emptyMessage = document.getElementById('emptyMessage');
+    const totalTasks = document.getElementById('totalTasks');
+    const completedTasks = document.getElementById('completedTasks');
+    const remainingTasks = document.getElementById('remainingTasks');
 
     let tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    let currentFilter = 'all';
 
     function saveTasks() {
       localStorage.setItem('tasks', JSON.stringify(tasks));
     }
 
+    function updateStats() {
+      const total = tasks.length;
+      const completed = tasks.filter(task => task.completed).length;
+      const remaining = total - completed;
+
+      totalTasks.textContent = 'Total : ' + total;
+      completedTasks.textContent = 'Terminées : ' + completed;
+      remainingTasks.textContent = 'Restantes : ' + remaining;
+    }
+
+    function getFilteredTasks() {
+      if (currentFilter === 'active') {
+        return tasks.filter(task => !task.completed);
+      }
+      if (currentFilter === 'completed') {
+        return tasks.filter(task => task.completed);
+      }
+      return tasks;
+    }
+
     function renderTasks() {
       taskList.innerHTML = '';
+      const filteredTasks = getFilteredTasks();
 
-      if (tasks.length === 0) {
+      if (filteredTasks.length === 0) {
         emptyMessage.style.display = 'block';
-        return;
+      } else {
+        emptyMessage.style.display = 'none';
       }
 
-      emptyMessage.style.display = 'none';
+      filteredTasks.forEach(task => {
+        const originalIndex = tasks.indexOf(task);
 
-      tasks.forEach((task, index) => {
         const li = document.createElement('li');
+        if (task.completed) {
+          li.classList.add('completed');
+        }
+
+        const checkbox = document.createElement('input');
+        checkbox.type = 'checkbox';
+        checkbox.checked = task.completed;
+        checkbox.onchange = function () {
+          toggleTask(originalIndex);
+        };
 
         const span = document.createElement('span');
         span.className = 'task-text';
-        span.textContent = task;
+        span.textContent = task.text;
 
         const deleteButton = document.createElement('button');
         deleteButton.className = 'delete-btn';
         deleteButton.textContent = 'Supprimer';
         deleteButton.onclick = function () {
-          deleteTask(index);
+          deleteTask(originalIndex);
         };
 
+        li.appendChild(checkbox);
         li.appendChild(span);
         li.appendChild(deleteButton);
         taskList.appendChild(li);
       });
+
+      updateStats();
     }
 
     function addTask() {
-      const task = taskInput.value.trim();
+      const text = taskInput.value.trim();
 
-      if (task === '') {
+      if (text === '') {
         alert('Veuillez entrer une tâche.');
         return;
       }
 
-      tasks.push(task);
+      tasks.push({
+        text: text,
+        completed: false
+      });
+
       saveTasks();
       renderTasks();
       taskInput.value = '';
@@ -194,6 +306,36 @@
     function deleteTask(index) {
       tasks.splice(index, 1);
       saveTasks();
+      renderTasks();
+    }
+
+    function toggleTask(index) {
+      tasks[index].completed = !tasks[index].completed;
+      saveTasks();
+      renderTasks();
+    }
+
+    function clearAllTasks() {
+      if (tasks.length === 0) {
+        return;
+      }
+
+      const confirmation = confirm('Voulez-vous supprimer toutes les tâches ?');
+      if (confirmation) {
+        tasks = [];
+        saveTasks();
+        renderTasks();
+      }
+    }
+
+    function setFilter(filter, button) {
+      currentFilter = filter;
+
+      document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+      });
+
+      button.classList.add('active');
       renderTasks();
     }
 
